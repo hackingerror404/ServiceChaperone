@@ -34,7 +34,7 @@
 
 ## 3. System-context diagram
 
-![diagram](/docs/Design Diagram 1.png)
+![diagram](/docs/DesignDiagram1.png)
 
 ## 4. Architecture and components
 
@@ -49,7 +49,7 @@ Service Chaperone is made of two processes sharing one SQLite file: a background
 | Store | Holds monitor definitions, current state, check history, and alert records in one SQLite file. | State Engine, Scheduler, Status window | SQL through SQLAlchemy |
 | Status window | Shows each monitor as up or down with its last check time, and a "monitor offline" banner when the self-check fails. | Store | Read-only SQL queries on a user-set time |
 
-![diagram](/docs/Design Diagram 2.png)
+![diagram](/docs/DesignDiagram2.png)
 
 ### Core flow, traced end to end
 
