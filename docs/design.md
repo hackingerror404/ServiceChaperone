@@ -53,8 +53,6 @@ Service Chaperone is made of two processes sharing one SQLite file: a background
 
 ### Core flow, traced end to end
 
-*The single most important user action in your MVP, step by step through the components above. If the trace needs a component the table doesn't have, the table is wrong.*
-
 In this example, a website goes down and the administrator is told. The monitor is set to a 60-second interval, 10-second timeout, and 2 retries (so 3 consecutive failures count as down).
 
 1. Either systemd starts the daemon at boot, or the user manually starts the program, depending on their preference. The Scheduler reads the config file, writes each monitor into the Store, and registers one timer per monitor.
@@ -99,8 +97,6 @@ Two rules keep the state simple. The config file is the source of truth for what
 | MaintenanceWindow | monitor, start, end | Belongs to one Monitor | Roadmap |
 
 ## 6. Technology choices and alternatives considered
-
-*One block per significant decision. The alternative must be one a reasonable team would actually pick. Where you did real work to decide — a spike, a benchmark, a prototype — cite it; that evidence is the difference between a preference and a decision.*
 
 ### Decision: Run monitoring in a background daemon, with the status window as a separate read-only process
 
