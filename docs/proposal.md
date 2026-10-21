@@ -44,7 +44,7 @@ Prioritized. P0 is the MVP; P1 is the roadmap's first stop; P2 is an honest wish
 
 ## Technical Approach
 | Choice | Explanation |
-|---|---|---|
+|---|---|
 | Python 3, with APScheduler for scheduling and httpx for checks. | I have prior experience with Python projects completed for class and my personal portfolio. APScheduler handles per-monitor intervals, so I don't write my own timing loop, and httpx supports timeouts and routing requests through a proxy, which is how proxy checks work. |
 | A background daemon separate from the GUI, run as a systemd user service. | Monitoring that stops when someone closes a window isn't monitoring. The daemon starts at boot and runs silently. The GUI is a client that can be opened and closed freely. |
 | SQLite for monitors and check history. | One file, no database server for the user to install or maintain. The data is small and written by a single process, which is the case SQLite is built for. |
