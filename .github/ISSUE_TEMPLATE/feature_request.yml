@@ -6,8 +6,6 @@ body:
     attributes:
       value: |
         Start with the problem, not the solution. A clear problem can be solved several ways.
-
-        Service Chaperone is a local Linux program. Hosted or cloud deployment and Windows or macOS support are deliberate non-goals, so requests for those will be closed with a pointer here.
   - type: textarea
     id: need
     attributes:
