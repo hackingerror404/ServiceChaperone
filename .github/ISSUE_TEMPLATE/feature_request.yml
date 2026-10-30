@@ -1,0 +1,35 @@
+name: Feature request
+description: Suggest something the project should do.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Start with the problem, not the solution. A clear problem can be solved several ways.
+
+        Service Chaperone is a local Linux program. Hosted or cloud deployment and Windows or macOS support are deliberate non-goals, so requests for those will be closed with a pointer here.
+  - type: textarea
+    id: need
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way?
+    validations:
+      required: true
+  - type: input
+    id: who
+    attributes:
+      label: Who has this problem
+      description: "For example: an admin running a few Discord bots with no monitoring budget."
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do today instead
+      description: The workaround tells us how much this costs you now.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: An idea for how it could work (optional)

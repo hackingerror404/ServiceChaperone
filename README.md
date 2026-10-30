@@ -1,6 +1,11 @@
-Service Chaperone is a project designed for hobbyist and volunteer administrators who run their own online services, such as proxies, websites, and bots intended for apps like Discord and Slack. This program will provide a way to easily monitor these services for outages, alerting the user when a service is no longer reachable through standard online pings.
+**Service Chaperone** is a program to monitor self-hosted online services, such as proxies, websites, and Discord/Slack bots, designed to alert hobbyist and volunteer administrators when their services experience an outage.
 
-The project is still a work in progress at this time. Work on the project will continue over the next few months until it is closer to a finished state.
+**Current Status**: Service Chaperone is still in its planning stages without any workable code. Updates will continue to come over the next two months until it is in a working state.
 
+**Quickstart**: The program does not run yet, so a quickstart is not possible at this time. Project setup is available [here](docs/setup.md).
+
+**How to Contribute**: Visit [this](/CONTRIBUTING.md) link to learn about the CONTRIBUTING process.
+
+To view the project's license, click [here](/LICENSE).
 To view the project's proposal, click [here](docs/proposal.md).  
 To view the project's design, click [here](docs/design.md).
