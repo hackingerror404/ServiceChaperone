@@ -56,7 +56,7 @@ Show how much of the time each service has been up, and list recent outages.
 - **Maintenance windows** that pause alerts during planned downtime.
 - **Slack bot monitoring**, once Discord bot monitoring works.
 
-## Dreams (no promise)
+## Potential long-term wants
 
 - **Heartbeat monitors** for services that can call in to Service Chaperone, for people who can open a port.
 - **Easier installs:** a `.deb`, an AUR package, or an AppImage.
