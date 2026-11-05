@@ -18,19 +18,19 @@ To fit the time that actually exists (about 15 hours of building per milestone, 
 
 ## Next (planned, in this order)
 
-### 1. Remember state and history
+### 1. Remember state and history (cut from initial scope)
 Keep each monitor's state and check history in SQLite, and reload it on startup so a restart doesn't repeat a DOWN alert.
 **Why it matters:** it fixes the MVP's known limitation, and it's the foundation for items 4 and 5.
 **Where to start:** the SQLite store issue, which points to the design document's data model.
 **Good for:** someone who knows SQLAlchemy or wants to learn it.
 
-### 2. Watch Discord bots
+### 2. Watch Discord bots (cut from initial scope)
 Detect when a Discord bot goes offline using a watcher bot, with no need for the bot to reach your machine.
 **Why it matters:** it was the clearest need from the user interview, and the biggest thing left out of the MVP.
 **Honest status:** it starts from the spike result. If the spike is green, this is a build; if it's red, the fallback is heartbeat monitoring. Read the spike issue first.
 **Good for:** someone who has built a Discord bot and is familiar with the API + interface used by them.
 
-### 3. Watch Slack bots
+### 3. Watch Slack bots (cit from initial scope)
 Detect when a Slack bot goes offline using a watcher bot, with no need for the bot to reach your machine.
 **Why it matters:** it was the clearest need from the user interview, and the biggest thing left out of the MVP.
 **Honest status:** it starts from the spike result. If the spike is green, this is a build; if it's red, the fallback is heartbeat monitoring. Read the spike issue first.
