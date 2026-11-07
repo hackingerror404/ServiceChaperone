@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "service-chaperone"
+version = "0.1.0"
+requires-python = ">=3.11"
+license = "GPL-3.0-only"   # match your LICENSE file (-only or -or-later)
+dependencies = []          # each arrives with the issue that first uses it
+
+[project.optional-dependencies]
+
+[project.scripts]
+service-chaperone = "service_chaperone.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
