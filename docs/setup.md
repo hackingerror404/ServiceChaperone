@@ -1,37 +1,154 @@
 # Setting up Service Chaperone
 
-> **Status: placeholder.** The full setup guide will be written together with the first runnable build (Milestone 1 in the design document's implementation plan). Until then there is nothing to install, and steps written for code that doesn't exist yet would only be guesses.
->
-> Progress on writing it is tracked in **[this](https://github.com/hackingerror404/ServiceChaperone/issues/5)** issue.
+> **Status:** Service Chaperone installs and reports its version, and its first building blocks (a website check and desktop notifications) exist, but it doesn't monitor anything yet. The program is an active work in progress and setup will adjust over time to reflect that. Progress is tracked in [issue #7](https://github.com/hackingerror404/ServiceChaperone/issues/7).
+
+This guide gets Service Chaperone installed from a clone of the repository. If you want to work on the code, jump to [For contributors](#for-contributors-development-setup).
 
 ## What you'll need
 
-The design already commits to this stack, so you can get ready now.
+| You need | Check with | Notes |
+| --- | --- | --- |
+| A Linux machine | | Any distribution. For real monitoring later, one that stays on (a desktop, home server, or Raspberry Pi) works best. |
+| Python 3.11 or newer | `python3 --version` | |
+| git | `git --version` | |
+| pipx | `pipx --version` | Step 1 shows how to install it. |
 
-**To run Service Chaperone**
+## 1. Install pipx
 
-- A Linux machine that stays on, such as a desktop, a home server, or a Raspberry Pi, with **systemd** (the background service runs as a systemd user service) if you'd intend for it run without manually starting it.
-- **Python 3** [minimum version to be confirmed with the first build] and **pipx**, which is how Service Chaperone will be installed
-- **git**, to clone the repository
+pipx installs command-line programs into their own isolated environments, so they can't clash with anything else on your system. Skip this step if `pipx --version` already works.
 
-**What the project is built with**
+```bash
+sudo apt install pipx          # Debian, Ubuntu
+sudo dnf install pipx          # Fedora
+sudo pacman -S python-pipx     # Arch
+```
 
-| Part | Tool |
+Then run this once and **open a new terminal**, so your shell can find programs that pipx installs:
+
+```bash
+pipx ensurepath
+```
+
+On another distribution, follow [pipx's own installation guide](https://pipx.pypa.io/stable/installation/).
+
+## 2. Clone the repository
+
+```bash
+git clone https://github.com/hackingerror404/ServiceChaperone.git
+cd ServiceChaperone
+```
+
+## 3. Install
+
+From inside the `ServiceChaperone` folder:
+
+```bash
+pipx install .
+```
+
+## 4. Check that it worked
+
+```bash
+service-chaperone --version
+```
+
+You should see:
+
+```
+service-chaperone 0.1.0
+```
+
+That's the whole install. The monitoring commands arrive in later releases (see [To-Do List](#to-do-list)).
+
+## Desktop notifications
+
+Service Chaperone will tell you about outages with a desktop notification, which uses the `notify-send` command. Test that it works on your machine:
+
+```bash
+notify-send "Test" "Hello"
+```
+
+If a popup appears, you're set. If you get `command not found`, install the package that provides it:
+
+```bash
+sudo apt install libnotify-bin   # Debian, Ubuntu
+sudo dnf install libnotify       # Fedora
+sudo pacman -S libnotify         # Arch
+```
+
+If the command runs but nothing appears, your desktop's notification service isn't running. That's common on machines with no desktop session, such as a headless server.
+
+## Updating
+
+pipx installs a copy of the code taken at install time, so pulling new changes isn't enough by itself. From the `ServiceChaperone` folder:
+
+```bash
+git pull
+pipx install --force .
+```
+
+## Uninstalling
+
+```bash
+pipx uninstall service-chaperone
+```
+
+You can then delete the `ServiceChaperone` folder.
+
+## Troubleshooting
+
+| What you see | What to do |
 | --- | --- |
-| Scheduling checks | APScheduler |
-| Website and proxy checks | httpx |
-| Storage | SQLite, through SQLAlchemy |
-| Alerts | Apprise (desktop notifications, email) |
-| Status window | Flet |
-| Discord bot monitoring | discord.py (a watcher bot; depends on the Discord spike result) |
-| Slack bot monitoring | slack.py (same as the above) |
+| `service-chaperone: command not found` | Run `pipx ensurepath`, then open a new terminal. `pipx list` shows whether it's installed. |
+| `pipx: command not found` | Do step 1. |
+| `error: externally-managed-environment` | You ran plain `pip install` outside a virtual environment. Use `pipx install .` instead. |
+| You changed code but nothing changed | pipx runs its own copy. Run `pipx install --force .` again, or use the contributor setup below. |
+| `notify-send: command not found` | See [Desktop notifications](#desktop-notifications). |
 
-**Only if you use these features**
+If none of these fit, [open an issue](https://github.com/hackingerror404/ServiceChaperone/issues/new/choose) with the command you ran and the full output.
 
-- **Email alerts:** an SMTP account to send from
-- **Discord bot monitoring:** a free bot token from the Discord Developer Portal, with the presence intent enabled, and a server where the watcher bot and the bot you want to monitor are both members
-- **Slack bot monitoring**: A similar server/group setup with the discord bots, and any additional bot tokens that a spike will need to confirm.
+## For contributors: development setup
 
-## In the meantime
+When you're changing code, use a virtual environment with an **editable install** instead of pipx. Your edits take effect immediately, with no reinstall.
 
-You can still help while this is a placeholder. Read the [contributing guide](../CONTRIBUTING.md), browse the open issues, or open one to report a problem or suggest an idea.
+```bash
+git clone https://github.com/hackingerror404/ServiceChaperone.git
+cd ServiceChaperone
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+service-chaperone --version
+```
+
+Run `pip install -e .` again only when you change `dependencies` or `[project.scripts]` in `pyproject.toml`. To leave the environment, run `deactivate`. Next time, just `source .venv/bin/activate`.
+
+### Checking your changes
+
+The project checks changes with small scripts in `dev/` rather than an automated test suite. Run the ones that match what you changed, and paste their output into your pull request.
+
+**Website check.** Start the local test server in one terminal and run the checks in another:
+
+```bash
+python dev/fake_server.py            # terminal 1: leave it running
+python dev/try_website_check.py      # terminal 2
+```
+
+The last line should read `6 of 6 scenarios passed.`
+
+**Desktop notifications.** This one needs `notify-send` (see above):
+
+```bash
+python dev/try_notify.py
+```
+
+You should see two popups, two seconds apart: one saying the service is down, then one saying it has recovered.
+
+Then read the [contributing guide](../CONTRIBUTING.md) for branches, commits, and pull requests.
+
+## To-Do List
+
+- Writing a config file that lists what to monitor
+- Running Service Chaperone and getting alerts
+- Running it as a background service that starts on its own
+
+See the [roadmap](roadmap.md) for a more comprehensive list of where the project is heading over time.
