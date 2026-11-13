@@ -11,3 +11,12 @@ class CheckResult:
     ok: bool
     response_ms: float | None = None
     error: str | None = None
+
+@dataclass(frozen=True)
+class Monitor:
+    name: str
+    type: str
+    url: str
+    interval: float
+    timeout: float
+    retries: int
