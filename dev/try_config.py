@@ -1,6 +1,6 @@
 """Run load_config against good and bad config files and report PASS or FAIL.
 
-This is a development tool. It is not part of the installed package.
+This is a development tool built with Claude. It is not part of the installed package.
 
     python dev/try_config.py
 
