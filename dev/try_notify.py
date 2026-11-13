@@ -1,6 +1,6 @@
 """Fire a DOWN and a recovered notification by hand.
 
-This is a development tool developed with Clauude. It is not part of the installed package.
+This is a development tool developed with Claude. It is not part of the installed package.
 
     python dev/try_notify.py                 # uses the name "My website"
     python dev/try_notify.py "Home proxy"    # uses your own name

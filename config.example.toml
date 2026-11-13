@@ -1,0 +1,22 @@
+# Service Chaperone configuration.
+#
+# Copy this file to
+#     ~/.config/service-chaperone/config.toml
+# and edit it. Each [[monitor]] block (double brackets) is one thing to watch.
+# A service is called DOWN after (retries + 1) failed checks in a row, so the
+# longest it can take to notice an outage is about
+#     (retries + 1) x interval + timeout     seconds.
+
+[[monitor]]
+name = "My website"          # required. Shown in alerts. Must be unique.
+type = "website"             # required. "website" is the only type for now.
+url = "https://example.com"  # required. Must start with http:// or https://
+interval = 60                # optional. Seconds between checks. Default 60.
+timeout = 10                 # optional. Seconds before one check counts as failed. Default 10.
+retries = 2                  # optional. Extra failures allowed before DOWN. Default 2.
+
+# Only the required fields: interval 60, timeout 10, and retries 2 apply.
+[[monitor]]
+name = "Another site"
+type = "website"
+url = "https://example.org"
