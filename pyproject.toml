@@ -7,7 +7,7 @@ name = "service-chaperone"
 version = "0.1.0"
 requires-python = ">=3.11"
 license = "GPL-3.0-only"   # match your LICENSE file (-only or -or-later)
-dependencies = ["httpx"]          # each arrives with the issue that first uses it
+dependencies = ["httpx", "apscheduler>=3.10,<4"]          # each arrives with the issue that first uses it
 
 [project.optional-dependencies]
 
