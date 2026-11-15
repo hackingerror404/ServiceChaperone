@@ -1,6 +1,6 @@
 # Setting up Service Chaperone
 
-> **Status:** Service Chaperone installs, reads a config file listing what to monitor, and checks those websites on a schedule, logging each result. It doesn't send alerts yet: a desktop notification when a service goes down or recovers arrives in the next update. The program is an active work in progress and setup will adjust over time to reflect that. Progress is tracked in [issue #7](https://github.com/hackingerror404/ServiceChaperone/issues/7).
+> **Status:** Service Chaperone installs, reads a config file listing what to monitor, and checks those websites on a schedule, logging each result. It shows a desktop notification when a service goes down and when it recovers. The program is an active work in progress and setup will adjust over time to reflect that. Progress is tracked in [issue #7](https://github.com/hackingerror404/ServiceChaperone/issues/7).
 
 This guide gets Service Chaperone installed from a clone of the repository. If you want to work on the code, jump to [For contributors](#for-contributors-development-setup).
 
@@ -78,7 +78,7 @@ Open `~/.config/service-chaperone/config.toml` in any text editor and replace th
 | `url` | yes | The address to check. Start it with `http://` or `https://`. |
 | `interval` | no (60) | Seconds between checks. |
 | `timeout` | no (10) | Seconds to wait before a check counts as failed. |
-| `retries` | no (2) | Extra failures allowed before a service is called down. This is read from the file now, and takes effect when alerts arrive in the next update. |
+| `retries` | no (2) | Extra failures allowed before a service is called down. A service is called DOWN after `retries` + 1 failed checks in a row, so one dropped request doesn't set off an alert. |
 
 The comments in the example file explain each field again. If you set `XDG_CONFIG_HOME`, the file goes in `$XDG_CONFIG_HOME/service-chaperone/` instead. To keep the file somewhere else, use `--config` (below).
 
@@ -94,9 +94,18 @@ It checks every monitor straight away, then again at each monitor's own interval
 20:55:38 INFO Watching 2 monitor(s). Press Ctrl-C to stop.
 20:55:38 INFO My website: UP (55.8 ms)
 20:55:38 WARNING Another site: DOWN (HTTP 500 Internal Server Error)
+20:56:38 WARNING Another site: DOWN (HTTP 500 Internal Server Error)
+20:57:38 WARNING Another site: DOWN (HTTP 500 Internal Server Error)
+20:57:38 WARNING Another site is now DOWN after 3 failure(s) in a row (HTTP 500 Internal Server Error)
 ```
 
-An `UP` line shows how long the site took to answer. A `DOWN` line says why. Press **Ctrl-C** to stop. If a check is in progress, stopping can take a few seconds, up to the monitor's timeout.
+An `UP` line shows how long the site took to answer. A `DOWN` line says why. The line saying a site **is now DOWN** is the moment you get a desktop notification. When the site answers again, you'll see `has recovered` and get a second notification. Press **Ctrl-C** to stop. If a check is in progress, stopping can take a few seconds, up to the monitor's timeout.
+
+**How alerts work:**
+
+- **One alert per change.** You get one notification when a site goes down and one when it recovers, not one for every failed check.
+- **Not instant, on purpose.** A site is called down after `retries` + 1 failed checks in a row, so the longest it can take is about `(retries + 1) × interval + timeout` seconds. With the defaults that's roughly 3 minutes.
+- **Quiet at startup.** A site that is healthy when you start gives no notification. A site that is already down when you start is reported once it has failed enough checks.
 
 To use a config file somewhere else:
 
@@ -104,11 +113,11 @@ To use a config file somewhere else:
 service-chaperone run --config /path/to/config.toml
 ```
 
-For now `run` stays in your terminal and only logs what it finds, so closing the terminal stops it. Alerts and running in the background are on the way (see the [To-Do List](#to-do-list)).
+For now `run` stays in your terminal, so closing the terminal stops it. Running in the background is on the way (see the [To-Do List](#to-do-list)). A few things don't work yet, such as remembering what was down across a restart and staying quiet when your own internet drops; the [known issues](known-issues.md) list them all.
 
 ## Desktop notifications
 
-Service Chaperone will tell you about outages with a desktop notification, which uses the `notify-send` command. Test that it works on your machine:
+Service Chaperone tells you about outages with a desktop notification, which uses the `notify-send` command. Test that it works on your machine before you rely on it:
 
 ```bash
 notify-send "Test" "Hello"
@@ -122,7 +131,7 @@ sudo dnf install libnotify       # Fedora
 sudo pacman -S libnotify         # Arch
 ```
 
-If the command runs but nothing appears, your desktop's notification service isn't running. That's common on machines with no desktop session, such as a headless server.
+If the command runs but nothing appears, check that **Do Not Disturb** is off, since some desktops silently hide notifications while it's on. Otherwise your desktop's notification service isn't running, which is common on machines with no desktop session, such as a headless server. If `notify-send` is missing or fails while `run` is going, Service Chaperone logs a warning and keeps checking, but you won't see popups.
 
 ## Updating
 
@@ -156,6 +165,9 @@ You can then delete the `ServiceChaperone` folder.
 | Every site shows `DOWN (connection error: ... Name or service not known)` or `... Temporary failure in name resolution` | The address can't be looked up: you may be offline, or the URL is misspelled. The example sites are placeholders, so replace them with your own. |
 | `DOWN (connection error: ... Connection refused)` | The machine answered, but nothing is listening at that address and port. Check the URL, including the port. |
 | `error: the following arguments are required: command` | Type `service-chaperone run`. |
+| The log says `is now DOWN` but no popup appears | Run `notify-send "Test" "Hello"`. If that shows nothing, see [Desktop notifications](#desktop-notifications), including Do Not Disturb. Look for a `WARNING` about `notify-send` in the log. |
+| A site is down but there's no alert yet | An alert needs `retries` + 1 failed checks in a row. Wait about `(retries + 1) × interval + timeout` seconds. With the defaults that's roughly 3 minutes. |
+| Every site alerted at once | Most likely your own internet dropped, so every site looked down. Service Chaperone can't tell the difference yet (see the [known issues](known-issues.md)). |
 
 If none of these fit, [open an issue](https://github.com/hackingerror404/ServiceChaperone/issues/new/choose) with the command you ran and the full output.
 
@@ -203,6 +215,14 @@ python dev/try_schedule.py
 
 The last line should read `13 of 13 checks passed.`
 
+**Up and down rules.** Feeds the engine made-up results and checks when it alerts. It needs no network and no server:
+
+```bash
+python dev/try_engine.py
+```
+
+The last line should read `19 of 19 checks passed.`
+
 **Desktop notifications.** This one needs `notify-send` (see above):
 
 ```bash
@@ -215,7 +235,8 @@ Then read the [contributing guide](../CONTRIBUTING.md) for branches, commits, an
 
 ## To-Do List
 
-- Getting a desktop alert when a service goes down or recovers (the checks and the notifications both exist; they get connected next)
+- Staying quiet when your own internet drops, instead of alerting for every site
+- Monitoring proxies and TCP ports as well as websites
 - Running it as a background service that starts on its own
 
 See the [roadmap](roadmap.md) for a more comprehensive list of where the project is heading over time.
