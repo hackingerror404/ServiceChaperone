@@ -7,6 +7,8 @@ from pathlib import Path
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 from service_chaperone.config import ConfigError, load_config
+from service_chaperone.engine import Engine
+from service_chaperone.notify import notify
 from service_chaperone.scheduler import add_monitor_jobs
 
 PROG = "service-chaperone"   # the command people type
@@ -53,7 +55,8 @@ def run_command(args) -> int:
 
     setup_logging()
     scheduler = BlockingScheduler()
-    add_monitor_jobs(scheduler, monitors)
+    engine = Engine(monitors, on_change=lambda monitor, state: notify(monitor.name, state))
+    add_monitor_jobs(scheduler, monitors, on_result=engine.handle_result)
     logger.info("Watching %d monitor(s). Press Ctrl-C to stop.", len(monitors))
     try:
         scheduler.start()  # holds the terminal until interrupted
