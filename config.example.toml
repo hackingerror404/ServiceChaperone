@@ -14,9 +14,3 @@ url = "https://example.com"  # required. Must start with http:// or https://
 interval = 60                # optional. Seconds between checks. Default 60.
 timeout = 10                 # optional. Seconds before one check counts as failed. Default 10.
 retries = 2                  # optional. Extra failures allowed before DOWN. Default 2.
-
-# Only the required fields: interval 60, timeout 10, and retries 2 apply.
-[[monitor]]
-name = "Another site"
-type = "website"
-url = "https://example.org"
