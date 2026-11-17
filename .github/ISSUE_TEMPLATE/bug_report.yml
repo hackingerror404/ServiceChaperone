@@ -1,0 +1,81 @@
+name: Bug report
+description: Something doesn't work the way it should.
+labels: ["bug", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One problem per report, please. Before you paste anything, remove passwords, webhook URLs, and tokens.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What did you do, in order? If one monitor is involved, paste its entry from your config file (secrets removed).
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected to happen
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened
+      description: Include the exact error message, if there was one.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log output
+      description: Paste the lines from the terminal where it ran. They are formatted as code automatically.
+      render: shell
+  - type: input
+    id: version
+    attributes:
+      label: Service Chaperone version
+      description: Run `service-chaperone --version`.
+      placeholder: service-chaperone 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: distro
+    attributes:
+      label: Linux distribution and version
+      placeholder: Ubuntu 24.04
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      description: Run `python3 --version`.
+  - type: dropdown
+    id: install
+    attributes:
+      label: How did you install it?
+      options:
+        - With pipx (from the setup guide)
+        - Development setup (virtual environment)
+        - Something else
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part seems affected?
+      options:
+        - Checking a website
+        - The config file
+        - Desktop notifications
+        - Scheduling or the run command
+        - Not sure
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Screenshots, how often it happens, what you already tried.
