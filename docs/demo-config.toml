@@ -1,0 +1,19 @@
+# Config for the M1 demo. See docs/demo.md.
+# A site is called DOWN after (retries + 1) failed checks in a row, so the
+# longest an outage can take to be noticed is (1 + 1) x 5 + 3 = 13 seconds.
+
+[[monitor]]
+name = "Site A"
+type = "website"
+url = "http://127.0.0.1:8001/"
+interval = 5
+timeout = 3
+retries = 1
+
+[[monitor]]
+name = "Site B"
+type = "website"
+url = "http://127.0.0.1:8002/"
+interval = 5
+timeout = 3
+retries = 1
