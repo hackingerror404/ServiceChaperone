@@ -7,6 +7,7 @@
 # longest it can take to notice an outage is about
 #     (retries + 1) x interval + timeout     seconds.
 
+# Example website:
 [[monitor]]
 name = "My website"          # required. Shown in alerts. Must be unique.
 type = "website"             # required. "website" is the only type for now.
@@ -14,3 +15,13 @@ url = "https://example.com"  # required. Must start with http:// or https://
 interval = 60                # optional. Seconds between checks. Default 60.
 timeout = 10                 # optional. Seconds before one check counts as failed. Default 10.
 retries = 2                  # optional. Extra failures allowed before DOWN. Default 2.
+
+# Example proxy:
+[[monitor]]
+name = "Home proxy"
+type = "proxy"
+proxy = "http://127.0.0.1:3128"
+url = "https://example.com"
+interval = 60
+timeout = 10
+retries = 2

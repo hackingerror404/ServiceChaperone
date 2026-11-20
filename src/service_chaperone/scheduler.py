@@ -3,11 +3,15 @@ from datetime import datetime
 
 from apscheduler.triggers.interval import IntervalTrigger
 
+from service_chaperone.checks.proxy import check_proxy
 from service_chaperone.checks.website import check_website
 
 logger = logging.getLogger(__name__)
 
-CHECKERS = {"website": check_website}
+CHECKERS = {
+    "website": lambda m: check_website(m.url, timeout=m.timeout),
+    "proxy": lambda m: check_proxy(m.proxy, url=m.url, timeout=m.timeout, monitor_name=m.name),
+}
 
 def _format_result(monitor, result) -> str:
     if result.ok:
@@ -17,7 +21,7 @@ def _format_result(monitor, result) -> str:
 
 def _run_check(monitor, on_result):
     try:
-        result = CHECKERS[monitor.type](monitor.url, monitor.timeout)
+        result = CHECKERS[monitor.type](monitor)
         if result.ok:
             logger.info(_format_result(monitor, result))
         else:

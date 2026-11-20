@@ -1,10 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
-  
-class ServiceState(StrEnum): 
+
+class ServiceState(StrEnum):
     UP = "up"
     DOWN = "down"
-    UNKNOWN = "unknown"  # not checked yet...abs
+    UNKNOWN = "unknown"  # not checked yet
 
 @dataclass(frozen=True)
 class CheckResult:
@@ -16,7 +16,8 @@ class CheckResult:
 class Monitor:
     name: str
     type: str
-    url: str
-    interval: float
-    timeout: float
-    retries: int
+    url: str | None = None
+    interval: float = 60.0
+    timeout: float = 10.0
+    retries: int = 2
+    proxy: str | None = field(default=None, repr=False)
