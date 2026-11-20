@@ -15,7 +15,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-from service_chaperone.config import ConfigError, default_config_path, load_config
+from service_chaperone.config import (
+    DEFAULT_PROXY_TEST_URL,
+    ConfigError,
+    default_config_path,
+    load_config,
+)
 from service_chaperone.models import Monitor
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -30,14 +35,52 @@ def block(extra: str = "", base: str = HEADER) -> str:
 def expect_values(monitors):
     """Checker for the 'two monitors, every field' case."""
     want = [
-        Monitor("My website", "website", "https://example.com", 30.0, 5.0, 1),
-        Monitor("Home page", "website", "http://127.0.0.1:8765/ok", 120.0, 15.0, 0),
+        Monitor(
+            name="My website",
+            type="website",
+            url="https://example.com",
+            interval=30.0,
+            timeout=5.0,
+            retries=1,
+        ),
+        Monitor(
+            name="Home page",
+            type="website",
+            url="http://127.0.0.1:8765/ok",
+            interval=120.0,
+            timeout=15.0,
+            retries=0,
+        ),
     ]
     return monitors == want or f"got {monitors!r}"
 
 
 def expect_defaults(monitors):
-    want = [Monitor("Site", "website", "https://example.com", 60.0, 10.0, 2)]
+    want = [
+        Monitor(
+            name="Site",
+            type="website",
+            url="https://example.com",
+            interval=60.0,
+            timeout=10.0,
+            retries=2,
+        )
+    ]
+    return monitors == want or f"got {monitors!r}"
+
+
+def expect_proxy_defaults(monitors):
+    want = [
+        Monitor(
+            name="Home proxy",
+            type="proxy",
+            url=DEFAULT_PROXY_TEST_URL,
+            proxy="http://127.0.0.1:3128",
+            interval=60.0,
+            timeout=10.0,
+            retries=2,
+        )
+    ]
     return monitors == want or f"got {monitors!r}"
 
 
@@ -51,32 +94,41 @@ GOOD_CASES = [
         expect_values,
     ),
     ("only required fields get the defaults", block(), expect_defaults),
+    (
+        "proxy monitor gets default test URL",
+        '[[monitor]]\nname = "Home proxy"\ntype = "proxy"\nproxy = "http://127.0.0.1:3128"\n',
+        expect_proxy_defaults,
+    ),
 ]
 
-# (name, toml text, substrings the error message must contain)
+# (name, toml text, substrings that must appear, optional substrings that must NOT appear)
 BAD_CASES = [
-    ("missing url", '[[monitor]]\nname = "Site"\ntype = "website"\n', ["monitor 'Site'", "missing required field 'url'"]),
-    ("missing name", '[[monitor]]\ntype = "website"\nurl = "https://example.com"\n', ["monitor #1", "missing required field 'name'"]),
-    ("interval of zero", block("interval = 0\n"), ["monitor 'Site'", "'interval'", "greater than 0"]),
-    ("negative interval", block("interval = -5\n"), ["'interval'", "greater than 0", "-5"]),
-    ("timeout of zero", block("timeout = 0\n"), ["'timeout'", "greater than 0"]),
-    ("interval written as text", block('interval = "60"\n'), ["'interval'", "must be a number"]),
-    ("interval of infinity", block("interval = inf\n"), ["'interval'", "must be a number"]),
-    ("negative retries", block("retries = -1\n"), ["'retries'", "whole number"]),
-    ("fractional retries", block("retries = 1.5\n"), ["'retries'", "whole number"]),
-    ("unknown type", block(base=HEADER.replace("website", "ftp")), ["unknown type", "'ftp'", "website"]),
-    ("planned type: proxy", block(base=HEADER.replace("website", "proxy")), ["not supported yet", "'proxy'"]),
-    ("planned type: port", block(base=HEADER.replace("website", "port")), ["not supported yet", "'port'"]),
-    ("misspelled field", block("intervall = 30\n"), ["unknown field 'intervall'"]),
-    ("empty name", block(base=HEADER.replace('"Site"', '""')), ["'name'", "non-empty"]),
-    ("empty file", "", ["no monitors found", "[[monitor]]"]),
-    ("only comments", "# nothing here\n", ["no monitors found"]),
-    ("[monitor] with single brackets", "[monitor]\n" + HEADER, ["double brackets"]),
-    ("broken TOML syntax", "[[monitor]\nname = \n", ["not valid TOML"]),
+    ("missing url", '[[monitor]]\nname = "Site"\ntype = "website"\n', ["monitor 'Site'", "missing required field 'url'"], []),
+    ("missing name", '[[monitor]]\ntype = "website"\nurl = "https://example.com"\n', ["monitor #1", "missing required field 'name'"], []),
+    ("interval of zero", block("interval = 0\n"), ["monitor 'Site'", "'interval'", "greater than 0"], []),
+    ("negative interval", block("interval = -5\n"), ["'interval'", "greater than 0", "-5"], []),
+    ("timeout of zero", block("timeout = 0\n"), ["'timeout'", "greater than 0"], []),
+    ("interval written as text", block('interval = "60"\n'), ["'interval'", "must be a number"], []),
+    ("interval of infinity", block("interval = inf\n"), ["'interval'", "must be a number"], []),
+    ("negative retries", block("retries = -1\n"), ["'retries'", "whole number"], []),
+    ("fractional retries", block("retries = 1.5\n"), ["'retries'", "whole number"], []),
+    ("unknown type", block(base=HEADER.replace("website", "ftp")), ["unknown type", "'ftp'", "website"], []),
+    ("planned type: port", block(base=HEADER.replace("website", "port")), ["not supported yet", "'port'"], []),
+    ("proxy missing on proxy monitor", '[[monitor]]\nname = "Home proxy"\ntype = "proxy"\n', ["monitor 'Home proxy'", "missing required field 'proxy'"], []),
+    ("proxy on a website monitor", block('proxy = "http://alice:s3cr3tpass@127.0.0.1:3128"\n'), ["monitor 'Site'", "'proxy' is not allowed"], ["s3cr3tpass"]),
+    ("socks5 proxy not supported yet", '[[monitor]]\nname = "Home proxy"\ntype = "proxy"\nproxy = "socks5://127.0.0.1:1080"\n', ["Home proxy", "SOCKS proxies are not supported yet"], []),
+    ("credentials redacted in bad proxy URL error", '[[monitor]]\nname = "Home proxy"\ntype = "proxy"\nproxy = "ftp://alice:s3cr3tpass@127.0.0.1:3128"\n', ["Home proxy", "http:// or https://"], ["s3cr3tpass", "alice"]),
+    ("misspelled field", block("intervall = 30\n"), ["unknown field 'intervall'"], []),
+    ("empty name", block(base=HEADER.replace('"Site"', '""')), ["'name'", "non-empty"], []),
+    ("empty file", "", ["no monitors found", "[[monitor]]"], []),
+    ("only comments", "# nothing here\n", ["no monitors found"], []),
+    ("[monitor] with single brackets", "[monitor]\n" + HEADER, ["double brackets"], []),
+    ("broken TOML syntax", "[[monitor]\nname = \n", ["not valid TOML"], []),
     (
         "several problems reported together",
         '[[monitor]]\nname = "A"\ntype = "ftp"\nurl = "https://example.com"\n\n[[monitor]]\nname = "B"\ntype = "website"\nurl = "https://example.com"\ninterval = 0\n',
         ["monitor 'A'", "unknown type", "monitor 'B'", "'interval'"],
+        [],
     ),
 ]
 
@@ -93,7 +145,7 @@ def run_good(name, text, check, workdir):
     return ([] if result is True else [result]), None
 
 
-def run_bad(name, text, needles, workdir):
+def run_bad(name, text, needles, forbidden, workdir):
     path = workdir / "config.toml"
     path.write_text(text)
     try:
@@ -101,6 +153,9 @@ def run_bad(name, text, needles, workdir):
     except ConfigError as exc:
         message = str(exc)
         problems = [f"message should mention {n!r}" for n in needles if n not in message]
+        problems.extend(
+            f"message must NOT leak {f!r}" for f in forbidden if f in message
+        )
         return problems, message
     except Exception as exc:
         return [f"raised {type(exc).__name__}, not ConfigError: {exc}"], None
@@ -129,9 +184,9 @@ def main() -> int:
             report("PASS" if not problems else "FAIL", name, problems, message)
             failures += bool(problems)
 
-        for name, text, needles in BAD_CASES:
+        for name, text, needles, forbidden in BAD_CASES:
             total += 1
-            problems, message = run_bad(name, text, needles, workdir)
+            problems, message = run_bad(name, text, needles, forbidden, workdir)
             report("PASS" if not problems else "FAIL", name, problems, message)
             failures += bool(problems)
 
@@ -156,7 +211,7 @@ def main() -> int:
         total += 1
         try:
             monitors = load_config(REPO_ROOT / "config.example.toml")
-            problems = [] if len(monitors) == 2 else [f"expected 2 monitors, got {len(monitors)}"]
+            problems = [] if len(monitors) == 3 else [f"expected 3 monitors, got {len(monitors)}"]
         except Exception as exc:
             problems = [f"config.example.toml failed to load: {exc}"]
         report("PASS" if not problems else "FAIL", "config.example.toml loads", problems)

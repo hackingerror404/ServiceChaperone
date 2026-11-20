@@ -1,6 +1,6 @@
 # Setting up Service Chaperone
 
-> **Status:** Service Chaperone installs, reads a config file listing what to monitor, and checks those websites on a schedule, logging each result. It shows a desktop notification when a service goes down and when it recovers. The program is an active work in progress and setup will adjust over time to reflect that. Progress is tracked in [issue #7](https://github.com/hackingerror404/ServiceChaperone/issues/7).
+> **Status:** Service Chaperone installs, reads a config file listing what to monitor, and checks those websites and proxies on a schedule, logging each result. It shows a desktop notification when a service goes down and when it recovers. The program is an active work in progress and setup will adjust over time to reflect that. Progress is tracked in [issue #7](https://github.com/hackingerror404/ServiceChaperone/issues/7).
 
 This guide gets Service Chaperone installed from a clone of the repository. If you want to work on the code, jump to [For contributors](#for-contributors-development-setup).
 
@@ -74,11 +74,14 @@ Open `~/.config/service-chaperone/config.toml` in any text editor and replace th
 | Field | Required? | What it means |
 | --- | --- | --- |
 | `name` | yes | How the service appears in the output. Pick something you'll recognise. |
-| `type` | yes | The kind of check. Only `"website"` works for now. |
-| `url` | yes | The address to check. Start it with `http://` or `https://`. |
+| `type` | yes | The kind of check: `"website"` or `"proxy"`. |
+| `url` | yes for `"website"`; optional for `"proxy"` (`https://example.com`) | The address to check. Start it with `http://` or `https://`. For a proxy monitor, this is the page fetched through the proxy—set it to a reliable page you trust, since if that page goes down the proxy will also report DOWN. |
+| `proxy` | yes for `"proxy"`; not allowed for `"website"` | The proxy URL to test, starting with `http://` or `https://` (for example `http://127.0.0.1:3128` or `http://user:pass@host:port`). SOCKS proxies (`socks5://`) aren't supported yet.
 | `interval` | no (60) | Seconds between checks. |
 | `timeout` | no (10) | Seconds to wait before a check counts as failed. |
 | `retries` | no (2) | Extra failures allowed before a service is called down. A service is called DOWN after `retries` + 1 failed checks in a row, so one dropped request doesn't set off an alert. |
+
+If your proxy needs a username and password: keep credentials out of shared files, bug reports, and git repositories. Lock down permissions on your config file so other accounts on the machine can't read it: `chmod 600 ~/.config/service-chaperone/config.toml`.
 
 The comments in the example file explain each field again. If you set `XDG_CONFIG_HOME`, the file goes in `$XDG_CONFIG_HOME/service-chaperone/` instead. To keep the file somewhere else, use `--config` (below).
 
@@ -199,6 +202,14 @@ python dev/try_website_check.py      # terminal 2
 
 The last line should read `6 of 6 scenarios passed.`
 
+**Proxy check.** Starts its own local upstream server and stand-in proxies, with no internet needed:
+
+```bash
+python dev/try_proxy.py
+```
+
+The last line should read `Finished with 0 failure(s).` You can also run `python dev/fake_proxy.py --port 3128` by hand to test a live proxy monitor end to end.
+
 **Config loading.** Checks good and bad config files, and the example file:
 
 ```bash
@@ -236,7 +247,7 @@ Then read the [contributing guide](../CONTRIBUTING.md) for branches, commits, an
 ## To-Do List
 
 - Staying quiet when your own internet drops, instead of alerting for every site
-- Monitoring proxies and TCP ports as well as websites
+- Monitoring TCP Ports
 - Running it as a background service that starts on its own
 
 See the [roadmap](roadmap.md) for a more comprehensive list of where the project is heading over time.

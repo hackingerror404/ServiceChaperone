@@ -2,6 +2,7 @@ import math
 import os
 import tomllib
 from pathlib import Path
+from urllib.parse import urlparse, urlunparse
 
 from service_chaperone.models import Monitor
 
@@ -9,16 +10,17 @@ DEFAULT_INTERVAL = 60  # seconds between checks
 DEFAULT_TIMEOUT = 10  # seconds before a check counts as failed
 DEFAULT_RETRIES = 2  # extra failures allowed before a service is called down
 
-SUPPORTED_TYPES = ("website",)
-PLANNED_TYPES = ("proxy", "port")  # recognised, but not built yet
+SUPPORTED_TYPES = ("website", "proxy")
+PLANNED_TYPES = ("port",)  # recognised, but not built yet
 
-_REQUIRED_FIELDS = ("name", "type", "url")
-_OPTIONAL_FIELDS = ("interval", "timeout", "retries")
-_ALL_FIELDS = _REQUIRED_FIELDS + _OPTIONAL_FIELDS
+_BASE_REQUIRED_FIELDS = ("name", "type")
+_OPTIONAL_FIELDS = ("url", "proxy", "interval", "timeout", "retries")
+_ALL_FIELDS = _BASE_REQUIRED_FIELDS + _OPTIONAL_FIELDS
+
+DEFAULT_PROXY_TEST_URL = "https://example.com"
+SUPPORTED_PROXY_SCHEMES = {"http", "https"}
 
 class ConfigError(Exception):
-    """The config file can't be used. str(error) lists every problem found."""
-
     def __init__(self, problems):
         if isinstance(problems, str):
             problems = [problems]
@@ -57,6 +59,31 @@ def load_config(path=None) -> list[Monitor]:
         raise ConfigError(problems)
     return monitors
 
+def redact_url(raw_url: str) -> str:
+    try:
+        parsed = urlparse(raw_url)
+    except ValueError:
+        return "<redacted-url>"
+    if not parsed.scheme:
+        return "<invalid-url>"
+    host = parsed.hostname or ""
+    netloc = f"{host}:{parsed.port}" if parsed.port else host
+    return urlunparse((parsed.scheme, netloc, parsed.path or "", "", "", ""))
+
+def validate_proxy_url(raw_proxy: str, monitor_name: str) -> str:
+    parsed = urlparse(raw_proxy)
+    scheme = (parsed.scheme or "").lower()
+    if scheme.startswith("socks"):
+        raise ValueError(
+            f"Monitor '{monitor_name}' (field 'proxy'): SOCKS proxies are not supported yet."
+        )
+    if scheme not in SUPPORTED_PROXY_SCHEMES or not parsed.hostname:
+        safe_url = redact_url(raw_proxy)
+        raise ValueError(
+            f"Monitor '{monitor_name}' (field 'proxy'): expected an http:// or https:// URL with a host, got '{safe_url}'."
+        )
+    return raw_proxy
+
 def _read_toml(path: Path) -> dict:
     try:
         with open(path, "rb") as file:  # tomllib needs binary mode
@@ -81,21 +108,25 @@ def _validate_monitor(raw, index: int):
     label = _make_label(raw, index)
     problems: list[str] = []
 
+    if not isinstance(raw, dict):
+        problems.append(f"{label}: each [[monitor]] entry must be a table")
+        return None, problems
+
     for key in raw:
         if key not in _ALL_FIELDS:
             problems.append(f"{label}: unknown field '{key}'")
 
-    for field in _REQUIRED_FIELDS:
+    for field in _BASE_REQUIRED_FIELDS:
         if field not in raw:
             problems.append(f"{label}: missing required field '{field}'")
 
-    for field in ("name", "url"):
-        if field in raw and not (isinstance(raw[field], str) and raw[field].strip()):
-            problems.append(f"{label}: '{field}' must be non-empty text (got {raw[field]!r})")
+    if "name" in raw and not (isinstance(raw["name"], str) and raw["name"].strip()):
+        problems.append(f"{label}: 'name' must be non-empty text (got {raw['name']!r})")
 
-    name = raw.get("name")
+    name = raw["name"].strip() if isinstance(raw.get("name"), str) and raw["name"].strip() else None
 
     type_var = raw.get("type")
+    type_valid = False
     if "type" in raw:
         if type_var in PLANNED_TYPES:
             problems.append(
@@ -107,19 +138,64 @@ def _validate_monitor(raw, index: int):
                 f"{label}: unknown type {type_var!r} "
                 f"(supported: {', '.join(SUPPORTED_TYPES)})"
             )
+        else:
+            type_valid = True
 
-    url = raw.get("url")
+    has_url = "url" in raw
+    url_raw = raw.get("url")
+    url: str | None = None
+    if has_url:
+        if not (isinstance(url_raw, str) and url_raw.strip()):
+            problems.append(f"{label}: 'url' must be non-empty text (got {url_raw!r})")
+        else:
+            url = url_raw.strip()
+
+    has_proxy = "proxy" in raw
+    proxy_raw = raw.get("proxy")
+    proxy: str | None = None
+    if has_proxy:
+        if not (isinstance(proxy_raw, str) and proxy_raw.strip()):
+            problems.append(
+                f"{label}: 'proxy' must be non-empty text (field 'proxy')"
+            )
+        else:
+            proxy = proxy_raw.strip()
+
+    if type_valid and type_var == "website":
+        if not has_url:
+            problems.append(
+                f"{label}: missing required field 'url' for website monitor"
+            )
+        if has_proxy:
+            problems.append(
+                f"{label}: 'proxy' is not allowed for website monitors (field 'proxy')"
+            )
+
+    elif type_valid and type_var == "proxy":
+        if not has_proxy:
+            problems.append(
+                f"{label}: missing required field 'proxy' for proxy monitor"
+            )
+        elif proxy is not None:
+            try:
+                validate_proxy_url(proxy, name or label)
+            except ValueError as exc:
+                problems.append(str(exc))
+        if not has_url:
+            url = DEFAULT_PROXY_TEST_URL
 
     interval = _check_number_range(raw, "interval", DEFAULT_INTERVAL, label, problems)
     timeout = _check_number_range(raw, "timeout", DEFAULT_TIMEOUT, label, problems)
     retries = _get_retry_count(raw, label, problems)
 
-    if problems:
+    if problems or name is None or type_var is None:
         return None, problems
+
     monitor = Monitor(
-        name=name.strip(),
+        name=name,
         type=type_var,
         url=url,
+        proxy=proxy,
         interval=interval,
         timeout=timeout,
         retries=retries,
