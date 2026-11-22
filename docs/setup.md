@@ -1,6 +1,6 @@
 # Setting up Service Chaperone
 
-> **Status:** Service Chaperone installs, reads a config file listing what to monitor, and checks those websites and proxies on a schedule, logging each result. It shows a desktop notification when a service goes down and when it recovers. The program is an active work in progress and setup will adjust over time to reflect that. Progress is tracked in [issue #7](https://github.com/hackingerror404/ServiceChaperone/issues/7).
+> **Status:** Service Chaperone installs, reads a config file listing what to monitor, and checks those websites, proxies, and TCP ports on a schedule, logging each result. It shows a desktop notification when a service goes down and when it recovers. The program is an active work in progress and setup will adjust over time to reflect that. Progress is tracked in [issue #7](https://github.com/hackingerror404/ServiceChaperone/issues/7).
 
 This guide gets Service Chaperone installed from a clone of the repository. If you want to work on the code, jump to [For contributors](#for-contributors-development-setup).
 
@@ -74,9 +74,11 @@ Open `~/.config/service-chaperone/config.toml` in any text editor and replace th
 | Field | Required? | What it means |
 | --- | --- | --- |
 | `name` | yes | How the service appears in the output. Pick something you'll recognise. |
-| `type` | yes | The kind of check: `"website"` or `"proxy"`. |
-| `url` | yes for `"website"`; optional for `"proxy"` (`https://example.com`) | The address to check. Start it with `http://` or `https://`. For a proxy monitor, this is the page fetched through the proxy—set it to a reliable page you trust, since if that page goes down the proxy will also report DOWN. |
-| `proxy` | yes for `"proxy"`; not allowed for `"website"` | The proxy URL to test, starting with `http://` or `https://` (for example `http://127.0.0.1:3128` or `http://user:pass@host:port`). SOCKS proxies (`socks5://`) aren't supported yet.
+| `type` | yes | The kind of check: `"website"`, `"proxy"`, or `"port"`. |
+| `url` | yes for `"website"`; optional for `"proxy"` (`https://example.com`); not allowed for `"port"` | The address to check. Start it with `http://` or `https://`. For a proxy monitor, this is the page fetched *through* the proxy—set it to a reliable page you trust, since if that page goes down the proxy will also report DOWN. |
+| `proxy` | yes for `"proxy"`; not allowed for `"website"` or `"port"` | The proxy URL to test, starting with `http://` or `https://` (for example `http://127.0.0.1:3128` or `http://user:pass@host:port`). SOCKS proxies (`socks5://`) aren't supported yet. |
+| `host` | yes for `"port"`; not allowed for `"website"` or `"proxy"` | The hostname or IP address to connect to (for example `127.0.0.1` or `example.com`, with no `http://`). |
+| `port` | yes for `"port"`; not allowed for `"website"` or `"proxy"` | The TCP port number to connect to, as a whole number from `1` to `65535`. |
 | `interval` | no (60) | Seconds between checks. |
 | `timeout` | no (10) | Seconds to wait before a check counts as failed. |
 | `retries` | no (2) | Extra failures allowed before a service is called down. A service is called DOWN after `retries` + 1 failed checks in a row, so one dropped request doesn't set off an alert. |
@@ -210,6 +212,14 @@ python dev/try_proxy.py
 
 The last line should read `Finished with 0 failure(s).` You can also run `python dev/fake_proxy.py --port 3128` by hand to test a live proxy monitor end to end.
 
+**TCP port check.** Starts its own local listening and stalled sockets, with no internet needed:
+
+```bash
+python dev/try_port.py
+```
+
+The last line should read `Finished with 0 failure(s).`
+
 **Config loading.** Checks good and bad config files, and the example file:
 
 ```bash
@@ -247,7 +257,6 @@ Then read the [contributing guide](../CONTRIBUTING.md) for branches, commits, an
 ## To-Do List
 
 - Staying quiet when your own internet drops, instead of alerting for every site
-- Monitoring TCP Ports
 - Running it as a background service that starts on its own
 
 See the [roadmap](roadmap.md) for a more comprehensive list of where the project is heading over time.

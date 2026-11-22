@@ -10,11 +10,11 @@ DEFAULT_INTERVAL = 60  # seconds between checks
 DEFAULT_TIMEOUT = 10  # seconds before a check counts as failed
 DEFAULT_RETRIES = 2  # extra failures allowed before a service is called down
 
-SUPPORTED_TYPES = ("website", "proxy")
-PLANNED_TYPES = ("port",)  # recognised, but not built yet
+SUPPORTED_TYPES = ("website", "proxy", "port")
+PLANNED_TYPES: tuple[str, ...] = ()
 
 _BASE_REQUIRED_FIELDS = ("name", "type")
-_OPTIONAL_FIELDS = ("url", "proxy", "interval", "timeout", "retries")
+_OPTIONAL_FIELDS = ("url", "proxy", "host", "port", "interval", "timeout", "retries")
 _ALL_FIELDS = _BASE_REQUIRED_FIELDS + _OPTIONAL_FIELDS
 
 DEFAULT_PROXY_TEST_URL = "https://example.com"
@@ -161,28 +161,57 @@ def _validate_monitor(raw, index: int):
         else:
             proxy = proxy_raw.strip()
 
+    has_host = "host" in raw
+    host_raw = raw.get("host")
+    host: str | None = None
+    if has_host:
+        if not (isinstance(host_raw, str) and host_raw.strip()):
+            problems.append(f"{label}: 'host' must be non-empty text (got {host_raw!r})")
+        elif "://" in host_raw:
+            problems.append(
+                f"{label}: 'host' should be a hostname or IP address, not a URL (got {host_raw!r})"
+            )
+        else:
+            host = host_raw.strip()
+
+    has_port = "port" in raw
+    port = _get_port(raw, label, problems)
+
     if type_valid and type_var == "website":
         if not has_url:
-            problems.append(
-                f"{label}: missing required field 'url' for website monitor"
-            )
-        if has_proxy:
-            problems.append(
-                f"{label}: 'proxy' is not allowed for website monitors (field 'proxy')"
-            )
+            problems.append(f"{label}: missing required field 'url' for website monitor")
+        for forbidden in ("proxy", "host", "port"):
+            if forbidden in raw:
+                problems.append(
+                    f"{label}: '{forbidden}' is not allowed for website monitors (field '{forbidden}')"
+                )
 
     elif type_valid and type_var == "proxy":
         if not has_proxy:
-            problems.append(
-                f"{label}: missing required field 'proxy' for proxy monitor"
-            )
+            problems.append(f"{label}: missing required field 'proxy' for proxy monitor")
         elif proxy is not None:
             try:
                 validate_proxy_url(proxy, name or label)
             except ValueError as exc:
                 problems.append(str(exc))
+        for forbidden in ("host", "port"):
+            if forbidden in raw:
+                problems.append(
+                    f"{label}: '{forbidden}' is not allowed for proxy monitors (field '{forbidden}')"
+                )
         if not has_url:
             url = DEFAULT_PROXY_TEST_URL
+
+    elif type_valid and type_var == "port":
+        if not has_host:
+            problems.append(f"{label}: missing required field 'host' for port monitor")
+        if not has_port:
+            problems.append(f"{label}: missing required field 'port' for port monitor")
+        for forbidden in ("url", "proxy"):
+            if forbidden in raw:
+                problems.append(
+                    f"{label}: '{forbidden}' is not allowed for port monitors (field '{forbidden}')"
+                )
 
     interval = _check_number_range(raw, "interval", DEFAULT_INTERVAL, label, problems)
     timeout = _check_number_range(raw, "timeout", DEFAULT_TIMEOUT, label, problems)
@@ -196,11 +225,24 @@ def _validate_monitor(raw, index: int):
         type=type_var,
         url=url,
         proxy=proxy,
+        host=host,
+        port=port,
         interval=interval,
         timeout=timeout,
         retries=retries,
     )
     return monitor, []
+
+def _get_port(raw, label, problems):
+    if "port" not in raw:
+        return None
+    value = raw["port"]
+    if isinstance(value, bool) or not isinstance(value, int) or not (1 <= value <= 65535):
+        problems.append(
+            f"{label}: 'port' must be a whole number between 1 and 65535 (got {value!r})"
+        )
+        return None
+    return value
 
 def _check_number_range(raw, field, default, label, problems):
     if field not in raw:

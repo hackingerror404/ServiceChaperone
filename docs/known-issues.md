@@ -6,7 +6,6 @@
 | **State is kept in memory** | After a restart, Service Chaperone forgets what was down, so a service that was already down alerts again. | Roadmap: save state and history in SQLite | the engine module |
 | **No connectivity self-check** | If your own internet drops, every service looks down and you get an alert for each. | M2: connectivity self-check | the engine module |
 | **Desktop notifications only** | No popup appears on a headless machine or when you're away from it. | Roadmap: email alerts | `notify.py` |
-| **Websites and proxies only** | TCP port monitors are refused with "not supported yet". | M2: TCP port checks | the config loader |
 | **SOCKS proxies aren't supported** | `socks5://` (and other SOCKS schemes) are rejected at startup. Only `http://` and `https://` proxies work. | Roadmap / good first issue (needs an extra dependency) | `config.py` |
 | **Environment proxy variables are ignored** | Website checks ignore `HTTP_PROXY`, `HTTPS_PROXY`, and similar shell variables so each monitor checks exactly what is in `config.toml`. | By design | `checks/website.py` |
 | **Needs `notify-send`** | Without the `libnotify` package, alerts fail (and are logged, not crashed). | Documented in `docs/setup.md` | `notify.py` |

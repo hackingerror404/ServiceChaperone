@@ -21,3 +21,5 @@ class Monitor:
     timeout: float = 10.0
     retries: int = 2
     proxy: str | None = field(default=None, repr=False)
+    host: str | None = None
+    port: int | None = None

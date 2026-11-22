@@ -1,6 +1,6 @@
 **Service Chaperone** is a program to monitor self-hosted online services, such as proxies, websites, and Discord/Slack bots, designed to alert hobbyist and volunteer administrators when their services experience an outage.
 
-**Current Status**: Service Chaperone installs, reads a config file, checks websites and proxies on a schedule, and shows a desktop notification when one goes down or recovers. TCP port checks, connectivity self-checks, and running in the background are next, and the first complete version is due in early December.
+**Current Status**: Service Chaperone installs, reads a config file, checks websites, proxies, and TCP ports on a schedule, and shows a desktop notification when one goes down or recovers. Connectivity self-checks and running in the background are next, and the first complete version is due in early December.
 
 **Quickstart**: Install it by following [docs/setup.md](docs/setup.md), copy `config.example.toml` to `~/.config/service-chaperone/config.toml` and list your services in it, then run `service-chaperone run`. It logs every check and shows a desktop notification when a service goes down or recovers.
 

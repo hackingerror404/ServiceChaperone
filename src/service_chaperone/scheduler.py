@@ -3,6 +3,7 @@ from datetime import datetime
 
 from apscheduler.triggers.interval import IntervalTrigger
 
+from service_chaperone.checks.port import check_port
 from service_chaperone.checks.proxy import check_proxy
 from service_chaperone.checks.website import check_website
 
@@ -11,6 +12,7 @@ logger = logging.getLogger(__name__)
 CHECKERS = {
     "website": lambda m: check_website(m.url, timeout=m.timeout),
     "proxy": lambda m: check_proxy(m.proxy, url=m.url, timeout=m.timeout, monitor_name=m.name),
+    "port": lambda m: check_port(m.host, m.port, timeout=m.timeout),
 }
 
 def _format_result(monitor, result) -> str:
