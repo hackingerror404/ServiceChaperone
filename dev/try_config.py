@@ -68,6 +68,19 @@ def expect_defaults(monitors):
     ]
     return monitors == want or f"got {monitors!r}"
 
+def expect_port_defaults(monitors):
+    want = [
+        Monitor(
+            name="Local SSH",
+            type="port",
+            host="127.0.0.1",
+            port=22,
+            interval=60.0,
+            timeout=10.0,
+            retries=2,
+        )
+    ]
+    return monitors == want or f"got {monitors!r}"
 
 def expect_proxy_defaults(monitors):
     want = [
@@ -99,6 +112,11 @@ GOOD_CASES = [
         '[[monitor]]\nname = "Home proxy"\ntype = "proxy"\nproxy = "http://127.0.0.1:3128"\n',
         expect_proxy_defaults,
     ),
+    (
+        "port monitor gets defaults",
+        '[[monitor]]\nname = "Local SSH"\ntype = "port"\nhost = "127.0.0.1"\nport = 22\n',
+        expect_port_defaults,
+    ),
 ]
 
 # (name, toml text, substrings that must appear, optional substrings that must NOT appear)
@@ -113,11 +131,18 @@ BAD_CASES = [
     ("negative retries", block("retries = -1\n"), ["'retries'", "whole number"], []),
     ("fractional retries", block("retries = 1.5\n"), ["'retries'", "whole number"], []),
     ("unknown type", block(base=HEADER.replace("website", "ftp")), ["unknown type", "'ftp'", "website"], []),
-    ("planned type: port", block(base=HEADER.replace("website", "port")), ["not supported yet", "'port'"], []),
     ("proxy missing on proxy monitor", '[[monitor]]\nname = "Home proxy"\ntype = "proxy"\n', ["monitor 'Home proxy'", "missing required field 'proxy'"], []),
     ("proxy on a website monitor", block('proxy = "http://alice:s3cr3tpass@127.0.0.1:3128"\n'), ["monitor 'Site'", "'proxy' is not allowed"], ["s3cr3tpass"]),
     ("socks5 proxy not supported yet", '[[monitor]]\nname = "Home proxy"\ntype = "proxy"\nproxy = "socks5://127.0.0.1:1080"\n', ["Home proxy", "SOCKS proxies are not supported yet"], []),
     ("credentials redacted in bad proxy URL error", '[[monitor]]\nname = "Home proxy"\ntype = "proxy"\nproxy = "ftp://alice:s3cr3tpass@127.0.0.1:3128"\n', ["Home proxy", "http:// or https://"], ["s3cr3tpass", "alice"]),
+    ("port missing on port monitor", '[[monitor]]\nname = "SSH"\ntype = "port"\nhost = "127.0.0.1"\n', ["monitor 'SSH'", "missing required field 'port'"], []),
+    ("host missing on port monitor", '[[monitor]]\nname = "SSH"\ntype = "port"\nport = 22\n', ["monitor 'SSH'", "missing required field 'host'"], []),
+    ("port of zero", '[[monitor]]\nname = "SSH"\ntype = "port"\nhost = "127.0.0.1"\nport = 0\n', ["monitor 'SSH'", "'port'", "1 and 65535"], []),
+    ("port above 65535", '[[monitor]]\nname = "SSH"\ntype = "port"\nhost = "127.0.0.1"\nport = 65536\n', ["monitor 'SSH'", "'port'", "1 and 65535"], []),
+    ("port written as text", '[[monitor]]\nname = "SSH"\ntype = "port"\nhost = "127.0.0.1"\nport = "22"\n', ["monitor 'SSH'", "'port'", "1 and 65535"], []),
+    ("port written as boolean", '[[monitor]]\nname = "SSH"\ntype = "port"\nhost = "127.0.0.1"\nport = true\n', ["monitor 'SSH'", "'port'", "1 and 65535"], []),
+    ("host given as URL", '[[monitor]]\nname = "SSH"\ntype = "port"\nhost = "http://127.0.0.1"\nport = 22\n', ["monitor 'SSH'", "'host'", "not a URL"], []),
+    ("url on a port monitor", '[[monitor]]\nname = "SSH"\ntype = "port"\nhost = "127.0.0.1"\nport = 22\nurl = "https://example.com"\n', ["monitor 'SSH'", "'url' is not allowed"], []),
     ("misspelled field", block("intervall = 30\n"), ["unknown field 'intervall'"], []),
     ("empty name", block(base=HEADER.replace('"Site"', '""')), ["'name'", "non-empty"], []),
     ("empty file", "", ["no monitors found", "[[monitor]]"], []),

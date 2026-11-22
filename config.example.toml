@@ -10,7 +10,7 @@
 # Example website:
 [[monitor]]
 name = "My website"          # required. Shown in alerts. Must be unique.
-type = "website"             # required. "website" is the only type for now.
+type = "website"             # required. "website", "proxy", or "port".
 url = "https://example.com"  # required. Must start with http:// or https://
 interval = 60                # optional. Seconds between checks. Default 60.
 timeout = 10                 # optional. Seconds before one check counts as failed. Default 10.
@@ -22,6 +22,16 @@ name = "Home proxy"
 type = "proxy"
 proxy = "http://127.0.0.1:3128"
 url = "https://example.com"
+interval = 60
+timeout = 10
+retries = 2
+
+# Example TCP port:
+[[monitor]]
+name = "Local SSH"
+type = "port"
+host = "127.0.0.1"           # required. Hostname or IP address (no http://).
+port = 22                    # required. Port number from 1 to 65535.
 interval = 60
 timeout = 10
 retries = 2
