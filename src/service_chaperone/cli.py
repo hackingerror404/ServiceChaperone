@@ -7,18 +7,15 @@ from pathlib import Path
 from apscheduler.schedulers.blocking import BlockingScheduler
 
 from service_chaperone.config import ConfigError, load_config
+from service_chaperone.connectivity import Connectivity
 from service_chaperone.engine import Engine
-from service_chaperone.notify import notify
+from service_chaperone.notify import notify, notify_offline
 from service_chaperone.scheduler import add_monitor_jobs
 
 PROG = "service-chaperone"   # the command people type
 DIST = "service-chaperone"   # the name in pyproject.toml
 
 logger = logging.getLogger(__name__)
-
-def main(argv=None) -> int:
-    build_parser().parse_args(argv)
-    return 0
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog=PROG)
@@ -55,7 +52,13 @@ def run_command(args) -> int:
 
     setup_logging()
     scheduler = BlockingScheduler()
-    engine = Engine(monitors, on_change=lambda monitor, state: notify(monitor.name, state))
+    connectivity = Connectivity()
+    engine = Engine(
+        monitors,
+        on_change=lambda monitor, state: notify(monitor.name, state),
+        connectivity=connectivity,
+        on_offline=notify_offline,
+    )
     add_monitor_jobs(scheduler, monitors, on_result=engine.handle_result)
     logger.info("Watching %d monitor(s). Press Ctrl-C to stop.", len(monitors))
     try:

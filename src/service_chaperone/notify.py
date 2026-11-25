@@ -64,3 +64,11 @@ def notify(name: str, state: ServiceState) -> bool:
     title, body = message
     return _deliver(title, body, urgent=state is ServiceState.DOWN) 
     # Urgent state here makes the notification not disappear until clicked. Might change later if too annoying.
+
+def notify_offline(hosts: str) -> bool:
+    title = f"{APP_NAME} is offline"
+    body = (
+        f"Could not reach {hosts}. "
+        "Alerts are paused until the connection returns."
+    )
+    return _deliver(title, body, urgent=False)
