@@ -111,6 +111,7 @@ An `UP` line shows how long the site took to answer. A `DOWN` line says why. The
 - **One alert per change.** You get one notification when a site goes down and one when it recovers, not one for every failed check.
 - **Not instant, on purpose.** A site is called down after `retries` + 1 failed checks in a row, so the longest it can take is about `(retries + 1) × interval + timeout` seconds. With the defaults that's roughly 3 minutes.
 - **Quiet at startup.** A site that is healthy when you start gives no notification. A site that is already down when you start is reported once it has failed enough checks.
+- **Quiet when your own internet drops.** Before calling a remote service DOWN, Service Chaperone tries to reach `1.1.1.1:443` and `8.8.8.8:443`. If neither answers, it holds failure counts, pauses DOWN alerts, and shows one "Service Chaperone is offline" notification instead of flooding you. Once the connection returns, failure counts reset to zero and normal monitoring resumes. Targets on `127.0.0.1` or `localhost` skip this self-check.
 
 To use a config file somewhere else:
 
@@ -118,7 +119,7 @@ To use a config file somewhere else:
 service-chaperone run --config /path/to/config.toml
 ```
 
-For now `run` stays in your terminal, so closing the terminal stops it. Running in the background is on the way (see the [To-Do List](#to-do-list)). A few things don't work yet, such as remembering what was down across a restart and staying quiet when your own internet drops; the [known issues](known-issues.md) list them all.
+For now `run` stays in your terminal, so closing the terminal stops it. Running in the background is on the way (see the [To-Do List](#to-do-list)). A few things don't work yet, such as remembering what was down across a restart; the [known issues](known-issues.md) list them all.
 
 ## Desktop notifications
 
@@ -172,7 +173,7 @@ You can then delete the `ServiceChaperone` folder.
 | `error: the following arguments are required: command` | Type `service-chaperone run`. |
 | The log says `is now DOWN` but no popup appears | Run `notify-send "Test" "Hello"`. If that shows nothing, see [Desktop notifications](#desktop-notifications), including Do Not Disturb. Look for a `WARNING` about `notify-send` in the log. |
 | A site is down but there's no alert yet | An alert needs `retries` + 1 failed checks in a row. Wait about `(retries + 1) × interval + timeout` seconds. With the defaults that's roughly 3 minutes. |
-| Every site alerted at once | Most likely your own internet dropped, so every site looked down. Service Chaperone can't tell the difference yet (see the [known issues](known-issues.md)). |
+| `Service Chaperone is offline` (or `Service Chaperone appears offline (could not reach 1.1.1.1:443, 8.8.8.8:443)`) | Your machine lost internet access, so DOWN alerts are paused until it comes back. If your internet is working fine, your network or firewall may be blocking TCP port 443 to both `1.1.1.1` and `8.8.8.8` (see the [known issues](known-issues.md)). |
 
 If none of these fit, [open an issue](https://github.com/hackingerror404/ServiceChaperone/issues/new/choose) with the command you ran and the full output.
 
@@ -244,6 +245,16 @@ python dev/try_engine.py
 
 The last line should read `19 of 19 checks passed.`
 
+**Connectivity self-check.** Uses local sockets as fake reference hosts, with no internet needed:
+
+```bash
+python dev/try_connectivity.py
+```
+
+The last line should read `Finished with 0 failure(s).`
+
+
+
 **Desktop notifications.** This one needs `notify-send` (see above):
 
 ```bash
@@ -256,7 +267,6 @@ Then read the [contributing guide](../CONTRIBUTING.md) for branches, commits, an
 
 ## To-Do List
 
-- Staying quiet when your own internet drops, instead of alerting for every site
 - Running it as a background service that starts on its own
 
 See the [roadmap](roadmap.md) for a more comprehensive list of where the project is heading over time.
