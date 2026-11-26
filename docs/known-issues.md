@@ -2,8 +2,7 @@
 
 | Issue | What it means for you | Planned fix | Also marked in |
 | --- | --- | --- | --- |
-| **Runs in the foreground only** | You start it by hand with `service-chaperone run` and it stops when the terminal closes. | M2: run as a systemd user service | `run` command help |
-| **State is kept in memory** | After a restart, Service Chaperone forgets what was down, so a service that was already down alerts again. | Roadmap: save state and history in SQLite | the engine module |
+| **State is kept in memory** | After a restart, Service Chaperone forgets what was down, so a service that was already down alerts again. | Roadmap: save state and history in SQLite | the engine module, `docs/systemd.md` |
 | **Self-check reference hosts are hardcoded** | Connectivity checks always probe `1.1.1.1:443` and `8.8.8.8:443`. On a restricted network that blocks both on port 443, remote outages will be held as "offline". | Roadmap: make reference hosts configurable in `config.toml` | `connectivity.py` |
 | **Desktop notifications only** | No popup appears on a headless machine or when you're away from it. | Roadmap: email alerts | `notify.py` |
 | **SOCKS proxies aren't supported** | `socks5://` (and other SOCKS schemes) are rejected at startup. Only `http://` and `https://` proxies work. | Roadmap / good first issue (needs an extra dependency) | `config.py` |
