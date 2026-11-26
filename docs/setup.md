@@ -259,6 +259,16 @@ python dev/try_connectivity.py
 
 The last line should read `Finished with 0 failure(s).`
 
+**Multi-outage end-to-end check.** Starts its own local website, proxy, and TCP port with a temporary config, takes each down and back up in turn, and verifies alert counts and detection times (takes about 35–40 seconds):
+
+```bash
+python dev/try_multi_outage.py
+```
+
+The last line should read `Finished with 0 failure(s).`
+
+Recorded outcomes from the multi-outage run, 5-minute disconnect test, and 72-hour stability run are kept in docs/test-results.md.
+
 **Desktop notifications.** This one needs `notify-send` (see above):
 
 ```bash

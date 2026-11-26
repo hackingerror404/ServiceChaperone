@@ -9,3 +9,4 @@
 To view the project's license, click [here](/LICENSE).
 To view the project's proposal, click [here](docs/proposal.md).  
 To view the project's design, click [here](docs/design.md).
+To view the project's test results, click [here](docs/test-results.md).
