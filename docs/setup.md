@@ -1,6 +1,6 @@
 # Setting up Service Chaperone
 
-> **Status:** Service Chaperone installs, reads a config file listing what to monitor, and checks those websites, proxies, and TCP ports on a schedule, logging each result. It shows a desktop notification when a service goes down and when it recovers. The program is an active work in progress and setup will adjust over time to reflect that. Progress is tracked in [issue #7](https://github.com/hackingerror404/ServiceChaperone/issues/7).
+> **Status:** Service Chaperone installs, reads a config file listing what to monitor, and checks websites, proxies, and TCP ports on a schedule—either in your terminal or in the background via systemd. It pauses alerts when your own internet drops and shows a desktop notification when a service goes down or recovers.
 
 This guide gets Service Chaperone installed from a clone of the repository. If you want to work on the code, jump to [For contributors](#for-contributors-development-setup).
 
@@ -119,7 +119,7 @@ To use a config file somewhere else:
 service-chaperone run --config /path/to/config.toml
 ```
 
-For now `run` stays in your terminal, so closing the terminal stops it. Running in the background is on the way (see the [To-Do List](#to-do-list)). A few things don't work yet, such as remembering what was down across a restart; the [known issues](known-issues.md) list them all.
+`service-chaperone run` stays in your terminal, so closing the terminal stops it. To run it in the background and start it automatically at login or boot, follow [docs/systemd.md](systemd.md). A few things don't work yet, such as remembering what was down across a restart; the [known issues](known-issues.md) list them all.
 
 ## Desktop notifications
 
@@ -146,6 +146,12 @@ pipx installs a copy of the code taken at install time, so pulling new changes i
 ```bash
 git pull
 pipx install --force .
+```
+
+If you run Service Chaperone as a background service, restart it so it picks up the new version:
+
+```bash
+systemctl --user restart service-chaperone
 ```
 
 ## Uninstalling
@@ -265,8 +271,6 @@ You should see two popups, two seconds apart: one saying the service is down, th
 
 Then read the [contributing guide](../CONTRIBUTING.md) for branches, commits, and pull requests.
 
-## To-Do List
+## What's next
 
-- Running it as a background service that starts on its own
-
-See the [roadmap](roadmap.md) for a more comprehensive list of where the project is heading over time.
+All core local monitoring features are in place. See the [roadmap](roadmap.md) for planned additions like saved history in SQLite, email alerts, and Discord/Slack bot monitoring.
