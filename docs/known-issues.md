@@ -8,5 +8,5 @@
 | **SOCKS proxies aren't supported** | `socks5://` (and other SOCKS schemes) are rejected at startup. Only `http://` and `https://` proxies work. | Roadmap / good first issue (needs an extra dependency) | `config.py` |
 | **Environment proxy variables are ignored** | Website checks ignore `HTTP_PROXY`, `HTTPS_PROXY`, and similar shell variables so each monitor checks exactly what is in `config.toml`. | By design | `checks/website.py` |
 | **Needs `notify-send`** | Without the `libnotify` package, alerts fail (and are logged, not crashed). | Documented in `docs/setup.md` | `notify.py` |
-| **No automated test suite** | Changes are checked by hand with the scripts in `dev/`. CI only confirms the package installs and runs. | Revisit when there's time | `docs/git-standards.md` |
+| **No automated test suite** | Changes are checked by hand with the scripts in `dev/`, and full verification runs are recorded in [docs/test-results.md](test-results.md). CI only confirms the package installs and runs. | Revisit when there's time | `docs/git-standards.md`, `docs/test-results.md` |
 | **Discord and Slack bots can't be monitored** | Only websites, proxies, and TCP ports are watched. | Roadmap, starting with a spike | `docs/roadmap.md` |
