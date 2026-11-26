@@ -259,8 +259,6 @@ python dev/try_connectivity.py
 
 The last line should read `Finished with 0 failure(s).`
 
-
-
 **Desktop notifications.** This one needs `notify-send` (see above):
 
 ```bash
