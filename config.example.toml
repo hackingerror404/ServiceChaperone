@@ -7,6 +7,10 @@
 # longest it can take to notice an outage is about
 #     (retries + 1) x interval + timeout     seconds.
 
+# Optional: send DOWN and recovery alerts to email or any Apprise-supported service.
+# See docs/config.md for Gmail App Passwords, SMTP, Discord, and other URL formats.
+# notify = ["mailto://yourusername:app-password@gmail.com"]
+
 # Example website:
 [[monitor]]
 name = "My website"          # required. Shown in alerts. Must be unique.

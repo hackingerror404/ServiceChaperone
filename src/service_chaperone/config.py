@@ -1,10 +1,12 @@
+import apprise
 import math
 import os
 import tomllib
+
 from pathlib import Path
 from urllib.parse import urlparse, urlunparse
 
-from service_chaperone.models import Monitor
+from service_chaperone.models import Config, Monitor
 
 DEFAULT_INTERVAL = 60  # seconds between checks
 DEFAULT_TIMEOUT = 10  # seconds before a check counts as failed
@@ -32,7 +34,7 @@ def default_config_path() -> Path:
     root = Path(base) if base and os.path.isabs(base) else Path.home() / ".config"
     return root / "service-chaperone" / "config.toml"
 
-def load_config(path=None) -> list[Monitor]:
+def load_config(path=None) -> Config:
     path = Path(path) if path is not None else default_config_path()
     data = _read_toml(path)
 
@@ -55,9 +57,11 @@ def load_config(path=None) -> list[Monitor]:
         if monitor is not None:
             monitors.append(monitor)
 
+    notify_urls = _validate_notify(data.get("notify"), problems)
+
     if problems:
         raise ConfigError(problems)
-    return monitors
+    return Config(monitors=tuple(monitors), notify=notify_urls)
 
 def redact_url(raw_url: str) -> str:
     try:
@@ -265,3 +269,36 @@ def _get_retry_count(raw, label, problems):
         problems.append(f"{label}: 'retries' must be a whole number, 0 or more (got {value!r})")
         return None
     return value
+
+def _notify_hint(url: str) -> str:
+    if "://" in url:
+        scheme = url.split("://", 1)[0].strip()
+        if scheme and scheme.isascii():
+            return f"'{scheme}://...'"
+    return "<unrecognized format>"
+
+def _validate_notify(raw_notify, problems: list[str]) -> tuple[str, ...]:
+    if raw_notify is None:
+        return ()
+    if not isinstance(raw_notify, list):
+        problems.append("top-level 'notify' must be a list of Apprise URLs (e.g. notify = [\"mailto://...\"])")
+        return ()
+
+    valid_urls: list[str] = []
+    for index, item in enumerate(raw_notify, start=1):
+        if not isinstance(item, str) or not item.strip():
+            problems.append(f"notify[{index}]: must be a non-empty Apprise URL string")
+            continue
+
+        url = item.strip()
+        checker = apprise.Apprise()
+        if not checker.add(url):
+            problems.append(
+                f"notify[{index}] ({_notify_hint(url)}): Apprise could not parse this notification URL; "
+                "check the Apprise URL format (https://github.com/caronc/apprise)"
+            )
+            continue
+
+        valid_urls.append(url)
+
+    return tuple(valid_urls)

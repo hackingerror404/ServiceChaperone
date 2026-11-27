@@ -205,7 +205,7 @@ retries = {RETRIES}
         with tempfile.TemporaryDirectory() as tmp:
             config_path = Path(tmp) / "multi-outage.toml"
             config_path.write_text(config_text)
-            monitors = load_config(config_path)
+            monitors = load_config(config_path).monitors
 
         engine = Engine(
             monitors,

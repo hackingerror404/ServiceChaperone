@@ -66,7 +66,7 @@ You should see `Linger=yes`. To turn it back off later, run `loginctl disable-li
 ## Important limitations
 
 - **State is not saved yet.** Service Chaperone keeps monitor state in memory. If the service restarts (after a reboot, a crash, or `systemctl --user restart service-chaperone`), it forgets what was already down. A service that is still down will trigger a new DOWN alert once it fails `retries + 1` checks again. Saving state in SQLite is on the roadmap.
-- **Desktop notifications require a graphical session.** Alerts currently use notify-send, which needs an active desktop session. On a headless machine—or after a reboot with lingering enabled before anyone logs in—monitoring and logging to journalctl still work, but desktop popups will not appear (Service Chaperone logs a warning and keeps checking). Headless alert channels like email are on the roadmap.
+- **Desktop notifications require a graphical session.** Popups use `notify-send`, which needs an active desktop session. On a headless machine—or after a reboot with lingering enabled before anyone logs in—monitoring and logging to `journalctl` still work, and you can receive alerts by adding an email or other Apprise URL to `notify = [...]` in `config.toml` (see [docs/config.md](config.md)).
 
 ## Updating or uninstalling the service
 

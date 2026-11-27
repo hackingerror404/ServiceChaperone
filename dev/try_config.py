@@ -27,10 +27,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 HEADER = 'name = "Site"\ntype = "website"\nurl = "https://example.com"\n'
 
-
 def block(extra: str = "", base: str = HEADER) -> str:
     return "[[monitor]]\n" + base + extra
-
 
 def expect_values(monitors):
     """Checker for the 'two monitors, every field' case."""
@@ -53,7 +51,6 @@ def expect_values(monitors):
         ),
     ]
     return monitors == want or f"got {monitors!r}"
-
 
 def expect_defaults(monitors):
     want = [
@@ -95,7 +92,6 @@ def expect_proxy_defaults(monitors):
         )
     ]
     return monitors == want or f"got {monitors!r}"
-
 
 GOOD_CASES = [
     (
@@ -155,20 +151,42 @@ BAD_CASES = [
         ["monitor 'A'", "unknown type", "monitor 'B'", "'interval'"],
         [],
     ),
+    (
+        "notify is a string instead of a list",
+        'notify = "mailto://alice:s3cr3tpass@example.com"\n' + block(),
+        ["'notify' must be a list"],
+        ["s3cr3tpass"],
+    ),
+    (
+        "notify entry is empty",
+        'notify = [""]\n' + block(),
+        ["notify[1]", "non-empty"],
+        [],
+    ),
+    (
+        "notify entry is not text",
+        "notify = [123]\n" + block(),
+        ["notify[1]", "non-empty"],
+        [],
+    ),
+    (
+        "notify URL rejected by Apprise (no secret leak)",
+        'notify = ["bogusscheme://alice:s3cr3tpass@example.com/tok_98765"]\n' + block(),
+        ["notify[1]", "bogusscheme://...", "Apprise could not parse"],
+        ["s3cr3tpass", "tok_98765"],
+    ),
 ]
-
 
 def run_good(name, text, check, workdir):
     path = workdir / "config.toml"
     path.write_text(text)
     try:
-        result = check(load_config(path))
+        result = check(list(load_config(path).monitors))
     except ConfigError as exc:
         return [f"raised ConfigError: {exc}"], None
     except Exception as exc:  # anything else is a bug in the loader
         return [f"raised {type(exc).__name__}: {exc}"], None
     return ([] if result is True else [result]), None
-
 
 def run_bad(name, text, needles, forbidden, workdir):
     path = workdir / "config.toml"
@@ -186,7 +204,6 @@ def run_bad(name, text, needles, forbidden, workdir):
         return [f"raised {type(exc).__name__}, not ConfigError: {exc}"], None
     return ["loaded without error, but it should have failed"], None
 
-
 def report(verdict, name, problems, message=None):
     print(f"{verdict}  {name}")
     if message:
@@ -194,7 +211,6 @@ def report(verdict, name, problems, message=None):
             print(f"      message: {line}")
     for problem in problems:
         print(f"      PROBLEM: {problem}")
-
 
 def main() -> int:
     failures = 0
@@ -235,8 +251,14 @@ def main() -> int:
         # config.example.toml must load, so the example never goes stale.
         total += 1
         try:
-            monitors = load_config(REPO_ROOT / "config.example.toml")
-            problems = [] if len(monitors) == 3 else [f"expected 3 monitors, got {len(monitors)}"]
+            config = load_config(REPO_ROOT / "config.example.toml")
+            problems = (
+                []
+                if len(config.monitors) == 3
+                else [f"expected 3 monitors, got {len(config.monitors)}"]
+            )
+            if config.notify != ():
+                problems.append(f"expected no notify URLs, got {len(config.notify)}")
         except Exception as exc:
             problems = [f"config.example.toml failed to load: {exc}"]
         report("PASS" if not problems else "FAIL", "config.example.toml loads", problems)
@@ -250,8 +272,12 @@ def main() -> int:
             target = default_config_path()
             target.parent.mkdir(parents=True)
             target.write_text(block())
-            monitors = load_config()  # no path given: uses the default location
-            problems = [] if len(monitors) == 1 else [f"expected 1 monitor, got {len(monitors)}"]
+            config = load_config()  # no path given: uses the default location
+            problems = (
+                []
+                if len(config.monitors) == 1
+                else [f"expected 1 monitor, got {len(config.monitors)}"]
+            )
             if not str(target).endswith("service-chaperone/config.toml"):
                 problems.append(f"unexpected default path: {target}")
         except Exception as exc:
@@ -262,6 +288,24 @@ def main() -> int:
             else:
                 os.environ["XDG_CONFIG_HOME"] = old
         report("PASS" if not problems else "FAIL", "default path honours XDG_CONFIG_HOME", problems)
+        failures += bool(problems)
+
+        # Valid top-level notify list loads and hides credentials in repr().
+        total += 1
+        notify_path = workdir / "valid_notify.toml"
+        notify_path.write_text(
+            'notify = ["mailto://alice:s3cr3tpass@example.com"]\n\n' + block()
+        )
+        try:
+            config = load_config(notify_path)
+            problems = []
+            if config.notify != ("mailto://alice:s3cr3tpass@example.com",):
+                problems.append(f"unexpected notify URLs count: {len(config.notify)}")
+            if "s3cr3tpass" in repr(config):
+                problems.append("repr(Config) leaked the notify password")
+        except Exception as exc:
+            problems = [f"valid notify config failed: {type(exc).__name__}: {exc}"]
+        report("PASS" if not problems else "FAIL", "valid notify list loads without leaking password", problems)
         failures += bool(problems)
 
     print(f"\n{total - failures} of {total} cases passed.")
