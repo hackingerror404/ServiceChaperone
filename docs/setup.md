@@ -84,6 +84,8 @@ Open `~/.config/service-chaperone/config.toml` in any text editor and replace th
 | `timeout` | no (10) | Seconds to wait before a check counts as failed. |
 | `retries` | no (2) | Extra failures allowed before a service is called down. A service is called DOWN after `retries` + 1 failed checks in a row, so one dropped request doesn't set off an alert. |
 
+To also receive alerts by email (or Discord, Slack, ntfy, etc.), add a top-level `notify = [...]` list to your config. See [docs/config.md](config.md) for the full configuration reference and email setup instructions.
+
 If your proxy needs a username and password: keep credentials out of shared files, bug reports, and git repositories. Lock down permissions on your config file so other accounts on the machine can't read it: `chmod 600 ~/.config/service-chaperone/config.toml`.
 
 The comments in the example file explain each field again. If you set `XDG_CONFIG_HOME`, the file goes in `$XDG_CONFIG_HOME/service-chaperone/` instead. To keep the file somewhere else, use `--config` (below).
@@ -113,6 +115,7 @@ An `UP` line shows how long the site took to answer. A `DOWN` line says why. The
 - **Not instant, on purpose.** A site is called down after `retries` + 1 failed checks in a row, so the longest it can take is about `(retries + 1) × interval + timeout` seconds. With the defaults that's roughly 3 minutes.
 - **Quiet at startup.** A site that is healthy when you start gives no notification. A site that is already down when you start is reported once it has failed enough checks.
 - **Quiet when your own internet drops.** Before calling a remote service DOWN, Service Chaperone tries to reach `1.1.1.1:443` and `8.8.8.8:443`. If neither answers, it holds failure counts, pauses DOWN alerts, and shows one "Service Chaperone is offline" notification instead of flooding you. Once the connection returns, failure counts reset to zero and normal monitoring resumes. Targets on `127.0.0.1` or `localhost` skip this self-check.
+- **Alert Locations.** Alerts go to both desktop notifications and any configured `notify` destinations.
 
 To use a config file somewhere else:
 
@@ -278,8 +281,14 @@ python dev/try_notify.py
 
 You should see two popups, two seconds apart: one saying the service is down, then one saying it has recovered.
 
-Then read the [contributing guide](../CONTRIBUTING.md) for branches, commits, and pull requests.
+**Apprise / email notifications.** Uses a fake Apprise client to verify alert delivery, startup URL validation, and secret redaction without sending real emails:
+
+```bash
+python dev/try_apprise_notify.py
+```
+
+The last line should read `Finished with 0 failure(s)`.
 
 ## What's next
 
-All core local monitoring features are in place. See the [roadmap](roadmap.md) for planned additions like saved history in SQLite, email alerts, and Discord/Slack bot monitoring.
+All core local monitoring features are in place. See the [roadmap](roadmap.md) for planned additions like saved history in SQLite and Discord/Slack bot monitoring.

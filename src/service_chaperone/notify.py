@@ -1,6 +1,7 @@
 import logging
 import shutil
 import subprocess
+import apprise
 
 from service_chaperone.models import ServiceState
 
@@ -55,15 +56,13 @@ def _deliver(title: str, body: str, urgent: bool) -> bool:
         return False
     return True
 
-
 def notify(name: str, state: ServiceState) -> bool:
     message = _message(name, state)
     if message is None:
         logger.warning("No notification is sent for state %s of %r.", state, name)
         return False
     title, body = message
-    return _deliver(title, body, urgent=state is ServiceState.DOWN) 
-    # Urgent state here makes the notification not disappear until clicked. Might change later if too annoying.
+    return _deliver(title, body, urgent=state is ServiceState.DOWN)
 
 def notify_offline(hosts: str) -> bool:
     title = f"{APP_NAME} is offline"
@@ -72,3 +71,69 @@ def notify_offline(hosts: str) -> bool:
         "Alerts are paused until the connection returns."
     )
     return _deliver(title, body, urgent=False)
+
+class Notifier:
+    """Sends alerts via desktop notification and any configured Apprise URLs."""
+
+    def __init__(
+        self,
+        urls: tuple[str, ...] = (),
+        *,
+        apprise_client=None,
+        desktop_deliver=_deliver,
+    ) -> None:
+        self._desktop_deliver = desktop_deliver
+        self._apprise = None
+
+        if urls:
+            client = apprise_client if apprise_client is not None else apprise.Apprise()
+            for index, url in enumerate(urls, start=1):
+                if not client.add(url):
+                    raise ValueError(
+                        f"notify[{index}]: Apprise could not parse this notification URL"
+                    )
+            self._apprise = client
+
+    def notify(self, name: str, state: ServiceState) -> bool:
+        message = _message(name, state)
+        if message is None:
+            logger.warning("No notification is sent for state %s of %r.", state, name)
+            return False
+
+        title, body = message
+        desktop_ok = self._desktop_deliver(title, body, urgent=state is ServiceState.DOWN)
+
+        if self._apprise is None:
+            return desktop_ok
+
+        notify_type = (
+            apprise.NotifyType.FAILURE
+            if state is ServiceState.DOWN
+            else apprise.NotifyType.SUCCESS
+        )
+        try:
+            remote_ok = bool(
+                self._apprise.notify(
+                    title=title,
+                    body=body,
+                    notify_type=notify_type,
+                )
+            )
+        except Exception:
+            logger.warning(
+                "Failed to deliver alert for %r via configured notify URL(s).",
+                name,
+            )
+            remote_ok = False
+        else:
+            if not remote_ok:
+                logger.warning(
+                    "One or more configured notify URL(s) failed to deliver alert for %r.",
+                    name,
+                )
+
+        return desktop_ok or remote_ok
+
+    def notify_offline(self, hosts: str) -> bool:
+        # Machine is offline, so remote URLs aren't reachable; desktop popup only.
+        return notify_offline(hosts)

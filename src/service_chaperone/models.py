@@ -23,3 +23,8 @@ class Monitor:
     proxy: str | None = field(default=None, repr=False)
     host: str | None = None
     port: int | None = None
+
+@dataclass(frozen=True)
+class Config:
+    monitors: tuple[Monitor, ...]
+    notify: tuple[str, ...] = field(default=(), repr=False)
