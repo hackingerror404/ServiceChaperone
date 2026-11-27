@@ -12,6 +12,7 @@ This guide gets Service Chaperone installed from a clone of the repository. If y
 | Python 3.11 or newer | `python3 --version` | |
 | git | `git --version` | |
 | pipx | `pipx --version` | Step 1 shows how to install it. |
+| `notify-send` package | `notify-send "Test" "Hello"` in your terminal | If the command is not found, make sure to install the package through your distro's package manager.
 
 ## 1. Install pipx
 
